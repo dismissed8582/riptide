@@ -3,8 +3,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm ci
+COPY package.json ./
+RUN npm install
 
 COPY tsconfig.json ./
 COPY src/ ./src/
@@ -33,8 +33,8 @@ RUN addgroup -S app && adduser -S -u 1000 -G app app
 WORKDIR /app
 
 # Install only production deps as root, then hand ownership to app user
-COPY --chown=app:app package.json package-lock.json* ./
-RUN npm ci --omit=dev && chown -R app:app /app/node_modules
+COPY --chown=app:app package.json ./
+RUN npm install --omit=dev && chown -R app:app /app/node_modules
 
 # Copy compiled JS from builder stage
 COPY --from=builder --chown=app:app /app/dist ./dist
