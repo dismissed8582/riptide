@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: riptide
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    envVars:
+      - key: RIPTIDE_PASSWORD
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: 3001
+      - key: DOWNLOADS_DIR
+        value: /downloads
+    disk:
+      name: riptide-downloads
+      mountPath: /downloads
+      sizeGB: 10
+    healthCheckPath: /
