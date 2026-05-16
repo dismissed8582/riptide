@@ -18,8 +18,6 @@ FROM node:20-alpine AS production
 RUN apk add --no-cache \
     ffmpeg \
     curl \
-    python3 \
-    py3-pip \
     ca-certificates
 
 # Latest yt-dlp standalone binary
