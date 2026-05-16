@@ -5,10 +5,6 @@ services:
     dockerfilePath: ./Dockerfile
     plan: starter
     envVars:
-      - key: RIPTIDE_PASSWORD
-        sync: false
-      - key: JWT_SECRET
-        generateValue: true
       - key: PORT
         value: 3001
       - key: DOWNLOADS_DIR

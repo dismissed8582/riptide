@@ -3,7 +3,6 @@ import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { requireAuth } from '../auth';
 import { addDownloadRecord, updateDownloadRecord } from './downloads';
 
 const DOWNLOADS_DIR = process.env.DOWNLOADS_DIR || path.join(__dirname, '../../../downloads');
@@ -34,7 +33,6 @@ function filenameFromUrl(url: string): string {
 }
 
 export const fileRouter = Router();
-fileRouter.use(requireAuth);
 
 fileRouter.post('/start', (req: Request, res: Response) => {
   const { url } = req.body as { url?: string };

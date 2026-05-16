@@ -3,7 +3,6 @@ import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { requireAuth } from '../auth';
 import { addDownloadRecord, updateDownloadRecord } from './downloads';
 
 const DOWNLOADS_DIR = process.env.DOWNLOADS_DIR || path.join(__dirname, '../../../downloads');
@@ -26,7 +25,6 @@ function bufferAndSend(id: string, event: string, data: unknown) {
 }
 
 export const mediaRouter = Router();
-mediaRouter.use(requireAuth);
 
 mediaRouter.post('/start', (req: Request, res: Response) => {
   const { url, extractAudio, resolution } = req.body as {

@@ -1,35 +1,11 @@
 const BASE = '/api';
 
-let _token = localStorage.getItem('riptide_token') || '';
-
-export function setToken(t: string) {
-  _token = t;
-  localStorage.setItem('riptide_token', t);
-}
-
-export function getToken() { return _token; }
-export function clearToken() { _token = ''; localStorage.removeItem('riptide_token'); }
-
-function authHeaders(): HeadersInit {
-  return { 'Content-Type': 'application/json', Authorization: `Bearer ${_token}` };
-}
-
-export async function login(password: string): Promise<string> {
-  const r = await fetch(`${BASE}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password }),
-  });
-  if (!r.ok) throw new Error('Invalid password');
-  const { token } = await r.json() as { token: string };
-  setToken(token);
-  return token;
-}
+const jsonHeaders: HeadersInit = { 'Content-Type': 'application/json' };
 
 export async function startMediaDownload(url: string, extractAudio: boolean, resolution: string): Promise<string> {
   const r = await fetch(`${BASE}/media/start`, {
     method: 'POST',
-    headers: authHeaders(),
+    headers: jsonHeaders,
     body: JSON.stringify({ url, extractAudio, resolution }),
   });
   if (!r.ok) { const e = await r.json() as { error: string }; throw new Error(e.error); }
@@ -40,7 +16,7 @@ export async function startMediaDownload(url: string, extractAudio: boolean, res
 export async function startFileDownload(url: string): Promise<string> {
   const r = await fetch(`${BASE}/files/start`, {
     method: 'POST',
-    headers: authHeaders(),
+    headers: jsonHeaders,
     body: JSON.stringify({ url }),
   });
   if (!r.ok) { const e = await r.json() as { error: string }; throw new Error(e.error); }
@@ -60,7 +36,6 @@ export function subscribeProgress(
   (async () => {
     try {
       const resp = await fetch(`${BASE}/${type}/progress/${id}`, {
-        headers: { Authorization: `Bearer ${_token}` },
         signal: controller.signal,
       });
       if (!resp.body) return;
@@ -125,13 +100,13 @@ export interface DownloadRecord {
 }
 
 export async function listDownloads(): Promise<DownloadRecord[]> {
-  const r = await fetch(`${BASE}/downloads`, { headers: authHeaders() });
+  const r = await fetch(`${BASE}/downloads`);
   if (!r.ok) throw new Error('Failed to list downloads');
   return r.json() as Promise<DownloadRecord[]>;
 }
 
 export async function deleteDownload(id: string): Promise<void> {
-  await fetch(`${BASE}/downloads/${id}`, { method: 'DELETE', headers: authHeaders() });
+  await fetch(`${BASE}/downloads/${id}`, { method: 'DELETE' });
 }
 
 export function downloadFileUrl(id: string): string {

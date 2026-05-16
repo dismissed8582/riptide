@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Download,
   Waves,
-  LogOut,
   Trash2,
   FileDown,
   Music,
@@ -14,9 +13,6 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import {
-  login,
-  clearToken,
-  getToken,
   startMediaDownload,
   startFileDownload,
   subscribeProgress,
@@ -53,11 +49,6 @@ function formatDate(ts: number): string {
 }
 
 export default function App() {
-  const [authed, setAuthed] = useState(!!getToken());
-  const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [loginLoading, setLoginLoading] = useState(false);
-
   const [url, setUrl] = useState('');
   const [mode, setMode] = useState<'media' | 'file'>('media');
   const [extractAudio, setExtractAudio] = useState(false);
@@ -78,32 +69,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!authed) return;
     refreshHistory();
     const iv = setInterval(refreshHistory, 5000);
     return () => clearInterval(iv);
-  }, [authed, refreshHistory]);
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setLoginLoading(true);
-    setLoginError('');
-    try {
-      await login(password);
-      setAuthed(true);
-    } catch (err) {
-      setLoginError((err as Error).message);
-    } finally {
-      setLoginLoading(false);
-    }
-  }
-
-  function handleLogout() {
-    clearToken();
-    setAuthed(false);
-    setActive([]);
-    setHistory([]);
-  }
+  }, [refreshHistory]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -170,58 +139,13 @@ export default function App() {
     setHistory(prev => prev.filter(h => h.id !== id));
   }
 
-  if (!authed) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950 px-4">
-        <div className="w-full max-w-sm">
-          <div className="flex items-center gap-3 mb-8 justify-center">
-            <Waves className="text-cyan-400 w-8 h-8" />
-            <h1 className="text-3xl font-bold text-white">Riptide</h1>
-          </div>
-          <form onSubmit={handleLogin} className="bg-gray-900 rounded-2xl p-6 shadow-xl border border-gray-800">
-            <h2 className="text-lg font-semibold text-gray-100 mb-4">Sign In</h2>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="Password"
-              className="w-full bg-gray-800 text-gray-100 rounded-xl px-4 py-3 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 mb-3 placeholder-gray-500"
-            />
-            {loginError && (
-              <p className="text-red-400 text-sm mb-3 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" /> {loginError}
-              </p>
-            )}
-            <button
-              type="submit"
-              disabled={loginLoading}
-              className="w-full bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-gray-950 font-bold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
-            >
-              {loginLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {loginLoading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
       {/* Header */}
       <header className="sticky top-0 z-10 bg-gray-950/90 backdrop-blur border-b border-gray-800 px-4 py-3">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Waves className="text-cyan-400 w-6 h-6" />
-            <span className="text-xl font-bold">Riptide</span>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-1.5 text-gray-400 hover:text-gray-100 transition-colors text-sm"
-          >
-            <LogOut className="w-4 h-4" />
-            Logout
-          </button>
+        <div className="max-w-2xl mx-auto flex items-center gap-2">
+          <Waves className="text-cyan-400 w-6 h-6" />
+          <span className="text-xl font-bold">Riptide</span>
         </div>
       </header>
 

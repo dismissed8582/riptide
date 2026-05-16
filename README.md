@@ -15,7 +15,6 @@ A self-hosted, all-in-one downloader web app. Grab videos, audio, and direct fil
 - **Real-time progress** streamed over SSE — percentage, speed, ETA
 - **Download history** with in-browser download and delete buttons
 - **Auto-cleanup** — files older than 2 hours are deleted automatically every 15 minutes
-- **JWT authentication** — single password, stateless tokens
 - **Mobile-first dark UI** built with React 18, Tailwind CSS, and Lucide icons
 
 ## Deploy
@@ -27,10 +26,7 @@ A self-hosted, all-in-one downloader web app. Grab videos, audio, and direct fil
 1. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
 2. Select this repository — Railway auto-detects the Dockerfile
 3. Add a **Volume** mounted at `/downloads` for persistent storage
-4. Set environment variables:
-   - `RIPTIDE_PASSWORD` → your chosen password
-   - `JWT_SECRET` → any random string
-5. Click **Deploy**
+4. Click **Deploy**
 
 Railway exposes a public URL automatically. No extra config files needed.
 
@@ -43,7 +39,6 @@ Fly.io has a free allowance (3 shared VMs, 3 GB storage). Auto-deploys from GitH
 # Install flyctl: https://fly.io/docs/hands-on/install-flyctl/
 fly auth login
 fly launch --no-deploy   # uses fly.toml, pick a unique app name when prompted
-fly secrets set RIPTIDE_PASSWORD=yourpassword JWT_SECRET=changethis
 fly volumes create riptide_downloads --size 3
 fly deploy
 ```
@@ -56,7 +51,7 @@ fly deploy
 
 ### Option 3 — Render.com (~$7/mo)
 
-Click the **Deploy to Render** button above. Render reads `render.yaml` and provisions the service + a 10 GB persistent disk automatically. Set `RIPTIDE_PASSWORD` when prompted.
+Click the **Deploy to Render** button above. Render reads `render.yaml` and provisions the service + a 10 GB persistent disk automatically.
 
 ### Option 4 — Any VPS (Docker)
 
@@ -66,8 +61,6 @@ Every push to `main` builds and publishes to GitHub Container Registry. Pull on 
 docker run -d \
   --name riptide \
   -p 3001:3001 \
-  -e RIPTIDE_PASSWORD=yourpassword \
-  -e JWT_SECRET=changethis \
   -v riptide-downloads:/downloads \
   --restart unless-stopped \
   ghcr.io/dismissed8582/riptide:latest
@@ -81,9 +74,6 @@ services:
     image: ghcr.io/dismissed8582/riptide:latest
     ports:
       - "3001:3001"
-    environment:
-      RIPTIDE_PASSWORD: yourpassword
-      JWT_SECRET: changethis
     volumes:
       - downloads:/downloads
     restart: unless-stopped
@@ -96,10 +86,10 @@ volumes:
 
 | Variable | Default | Description |
 |---|---|---|
-| `RIPTIDE_PASSWORD` | `changeme` | Login password |
-| `JWT_SECRET` | `riptide-secret` | Secret used to sign JWT tokens |
 | `PORT` | `3001` | Port the server listens on |
 | `DOWNLOADS_DIR` | `/downloads` | Where downloaded files are stored |
+
+> ⚠️ Riptide has no built-in authentication. If you expose it to the public internet, put it behind a reverse proxy with basic auth (Caddy, nginx) or a tunnel like Tailscale / Cloudflare Access.
 
 ## Local Development
 

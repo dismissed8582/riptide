@@ -1,6 +1,5 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
-import { requireAuth } from '../auth';
 
 export interface DownloadRecord {
   id: string;
@@ -30,7 +29,6 @@ export function getDownloadRecord(id: string): DownloadRecord | undefined {
 }
 
 export const downloadsRouter = Router();
-downloadsRouter.use(requireAuth);
 
 downloadsRouter.get('/', (_req: Request, res: Response) => {
   const list = Array.from(store.values()).sort((a, b) => b.createdAt - a.createdAt);
