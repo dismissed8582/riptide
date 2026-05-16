@@ -2,6 +2,7 @@
 
 A self-hosted, all-in-one downloader web app. Grab videos, audio, and direct files from anywhere — runs entirely in Docker.
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/riptide)
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/dismissed8582/riptide)
 [![Build & Publish](https://github.com/dismissed8582/riptide/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/dismissed8582/riptide/actions/workflows/docker-publish.yml)
 
@@ -19,15 +20,47 @@ A self-hosted, all-in-one downloader web app. Grab videos, audio, and direct fil
 
 ## Deploy
 
-### Option 1 — Render.com (one click)
+> GitHub Pages only serves static HTML — Riptide needs a Node.js runtime. Use one of the options below.
 
-Click the **Deploy to Render** button above. Set `RIPTIDE_PASSWORD` when prompted. Render will build the Dockerfile and mount a 10 GB persistent disk at `/downloads`.
+### Option 1 — Railway (easiest, ~$5/mo)
 
-> Requires a [Render](https://render.com) account. The **Starter** plan (~$7/mo) is needed for the persistent disk; the free tier uses ephemeral storage (files vanish on restart).
+1. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
+2. Select this repository — Railway auto-detects the Dockerfile
+3. Add a **Volume** mounted at `/downloads` for persistent storage
+4. Set environment variables:
+   - `RIPTIDE_PASSWORD` → your chosen password
+   - `JWT_SECRET` → any random string
+5. Click **Deploy**
 
-### Option 2 — GitHub Container Registry + any host
+Railway exposes a public URL automatically. No extra config files needed.
 
-Every push to `main` builds and publishes the image to GHCR automatically via GitHub Actions. Pull it on any Docker host:
+### Option 2 — Fly.io (free tier available)
+
+Fly.io has a free allowance (3 shared VMs, 3 GB storage). Auto-deploys from GitHub on every push via the included Actions workflow.
+
+**First deploy (one-time setup):**
+```bash
+# Install flyctl: https://fly.io/docs/hands-on/install-flyctl/
+fly auth login
+fly launch --no-deploy   # uses fly.toml, pick a unique app name when prompted
+fly secrets set RIPTIDE_PASSWORD=yourpassword JWT_SECRET=changethis
+fly volumes create riptide_downloads --size 3
+fly deploy
+```
+
+**Subsequent deploys — automatic via GitHub Actions:**
+
+1. Go to your repo → **Settings → Secrets → Actions**
+2. Add secret `FLY_API_TOKEN` → value from `fly auth token`
+3. Every push to `main` now auto-deploys
+
+### Option 3 — Render.com (~$7/mo)
+
+Click the **Deploy to Render** button above. Render reads `render.yaml` and provisions the service + a 10 GB persistent disk automatically. Set `RIPTIDE_PASSWORD` when prompted.
+
+### Option 4 — Any VPS (Docker)
+
+Every push to `main` builds and publishes to GitHub Container Registry. Pull on any host:
 
 ```bash
 docker run -d \
@@ -36,10 +69,11 @@ docker run -d \
   -e RIPTIDE_PASSWORD=yourpassword \
   -e JWT_SECRET=changethis \
   -v riptide-downloads:/downloads \
+  --restart unless-stopped \
   ghcr.io/dismissed8582/riptide:latest
 ```
 
-### Option 3 — Docker Compose (self-hosted VPS)
+Or with Docker Compose:
 
 ```yaml
 services:
@@ -58,12 +92,6 @@ volumes:
   downloads:
 ```
 
-```bash
-docker compose up -d
-```
-
-Open [http://localhost:3001](http://localhost:3001) and sign in with your password.
-
 ## Environment Variables
 
 | Variable | Default | Description |
@@ -78,31 +106,14 @@ Open [http://localhost:3001](http://localhost:3001) and sign in with your passwo
 Requires Node.js 20+, `yt-dlp`, `ffmpeg`, and `curl` installed locally.
 
 ```bash
-# Copy env file and fill in values
-cp .env.example .env
+cp .env.example .env          # fill in your values
 
-# Install dependencies
 cd backend && npm install
 cd ../frontend && npm install
 
-# Run backend (port 3001) and frontend (port 5173) in separate terminals
-cd backend && npm run dev
-cd frontend && npm run dev
-```
-
-The frontend dev server proxies `/api` requests to the backend automatically.
-
-## Building
-
-```bash
-# Build backend TypeScript
-cd backend && npm run build
-
-# Build frontend
-cd frontend && npm run build
-
-# Build Docker image
-docker build -t riptide .
+# Two terminals:
+cd backend && npm run dev     # API on :3001
+cd frontend && npm run dev    # UI on :5173 (proxies /api to backend)
 ```
 
 ## Architecture
@@ -124,9 +135,9 @@ riptide/
         └── api.ts            # Fetch client + SSE reader
 ```
 
-**Progress streaming** uses Server-Sent Events over a `fetch`-based reader (not native `EventSource`) so `Authorization: Bearer` headers work without CORS issues. Events are buffered server-side so a late-connecting client still receives the full history.
+Progress streaming uses Server-Sent Events over a `fetch`-based reader so `Authorization: Bearer` headers work. Events are buffered server-side so a late-connecting SSE client still receives the full history.
 
-## Binaries Included (Docker image)
+## Binaries in the Docker image
 
 | Binary | Purpose |
 |---|---|
