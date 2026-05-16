@@ -1,53 +1,40 @@
-# Stage 1: Build frontend
-FROM node:20-alpine AS frontend-build
-WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm install --frozen-lockfile 2>/dev/null || npm install
-COPY frontend/ ./
+# Stage 1: Build TypeScript
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package.json tsconfig.json ./
+RUN npm install
+# TS source files live at repo root (not in src/); copy them into src/ for tsc
+COPY *.ts ./src/
 RUN npm run build
 
-# Stage 2: Build backend
-FROM node:20-alpine AS backend-build
-WORKDIR /app/backend
-COPY backend/package.json backend/package-lock.json* ./
-RUN npm install --frozen-lockfile 2>/dev/null || npm install
-COPY backend/ ./
-RUN npm run build
-
-# Stage 3: Production
+# Stage 2: Production
 FROM node:20-alpine AS production
 
-# Install system deps: ffmpeg, wget, curl, python3 (for yt-dlp)
 RUN apk add --no-cache \
     ffmpeg \
-    wget \
     curl \
     python3 \
     py3-pip \
     ca-certificates
 
-# Install latest yt-dlp binary
-RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
-    && chmod a+rx /usr/local/bin/yt-dlp
+RUN curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+    -o /usr/local/bin/yt-dlp && chmod a+rx /usr/local/bin/yt-dlp
+
+RUN addgroup -S app && adduser -S -u 1000 -G app app
 
 WORKDIR /app
+COPY --chown=app:app package.json ./
+RUN npm install --omit=dev && chown -R app:app /app/node_modules
+COPY --from=builder --chown=app:app /app/dist ./dist
+RUN mkdir -p /downloads && chown app:app /downloads
 
-# Copy backend build
-COPY --from=backend-build /app/backend/dist ./backend/dist
-COPY --from=backend-build /app/backend/node_modules ./backend/node_modules
-COPY --from=backend-build /app/backend/package.json ./backend/package.json
-
-# Copy frontend build into location backend will serve
-COPY --from=frontend-build /app/frontend/dist ./frontend/dist
-
-# Downloads volume
-RUN mkdir -p /downloads
 VOLUME ["/downloads"]
 
 ENV NODE_ENV=production
-ENV PORT=3001
+ENV PORT=7860
 ENV DOWNLOADS_DIR=/downloads
 
-EXPOSE 3001
+EXPOSE 7860
 
-CMD ["node", "backend/dist/index.js"]
+USER app
+CMD ["node", "dist/index.js"]
